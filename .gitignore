@@ -1,0 +1,1 @@
+# Dependencies\nnode_modules/\n.env\n.env.local\n.DS_Store\n/build\n/dist\ncoverage/\n.vscode/
