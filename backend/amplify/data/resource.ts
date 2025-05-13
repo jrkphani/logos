@@ -18,6 +18,7 @@ const schema = a.schema({
   })
   .authorization(allow => [
     allow.ownerDefinedIn("userId").to(['create', 'read', 'update', 'delete']),
+    allow.groups(['admin']).to(['read', 'update', 'delete']),
   ])
   .identifier(['userId']), // Use userId as the primary key
 
@@ -38,6 +39,7 @@ const schema = a.schema({
   })
   .authorization(allow => [
     allow.owner().to(['create', 'read', 'update', 'delete']), // Only owner can CRUD their documents
+    allow.groups(['admin']).to(['read', 'update', 'delete']),
   ]),
 
   // V1: Collections will be simple. Definition and entries.
@@ -50,6 +52,7 @@ const schema = a.schema({
   })
   .authorization(allow => [
     allow.owner().to(['create', 'read', 'update', 'delete']),
+    allow.groups(['admin']).to(['read', 'update', 'delete']),
   ]),
   // .identifier(['documentId', 'name']) // Example composite identifier
 
@@ -62,6 +65,7 @@ const schema = a.schema({
   })
   .authorization(allow => [
     allow.owner().to(['create', 'read', 'update', 'delete']),
+    allow.groups(['admin']).to(['read', 'update', 'delete']),
   ]),
 
   // V1: SharePermissions for asynchronous document sharing
@@ -73,6 +77,7 @@ const schema = a.schema({
   })
   .authorization(allow => [
     allow.owner().to(['create', 'read', 'update', 'delete']), // Only the document owner can manage shares
+    allow.groups(['admin']).to(['read', 'update', 'delete']),
     // Users it's shared with need read access to this permission entry to know they have access
     // This requires more complex auth rules, potentially using custom resolvers or AppSync group auth later.
     // For V1, owner manages. Read access for sharedWithUserId can be handled by GSIs and client logic.
