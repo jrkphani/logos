@@ -1,1 +1,7 @@
-# Dependencies\nnode_modules/\n.env\n.env.local\n.DS_Store\n/build\n/dist\ncoverage/\n.vscode/
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/src/amplify_outputs.json
+backend/amplify/.outputs/
+backend/amplify/local/
+.DS_Store
