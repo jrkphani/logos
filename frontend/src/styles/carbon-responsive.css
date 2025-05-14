@@ -1,0 +1,196 @@
+/**
+ * Carbon-inspired Responsive CSS Variables and Utilities
+ * For Logos Project
+ */
+
+:root {
+  /* Base unit */
+  --carbon-base-unit: 8px;
+  
+  /* Color palette - from theme.ts */
+  --logos-primary-main: #07422B;
+  --logos-primary-hover: #3D7359;
+  --gray-10: #f4f4f4;
+  --gray-20: #e0e0e0;
+  --gray-50: #8d8d8d;
+  --gray-100: #e0e0e0;
+  --gray-600: #525252;
+  --gray-800: #262626;
+  --gray-900: #161616;
+  --support-success: #198038;
+  --support-warning: #F1C21B;
+  --support-error: #FA4D56;
+  --support-info: #005D5D;
+  
+  /* Typography */
+  --font-family-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-family-mono: 'IBM Plex Mono', monospace;
+  --base-font-size: 16px;
+}
+
+/* Fluid Spacing Scale */
+:root {
+  --spacing-01: 0.125rem;  /* 2px */
+  --spacing-02: 0.25rem;   /* 4px */
+  --spacing-03: 0.5rem;    /* 8px */
+  --spacing-04: 0.75rem;   /* 12px */
+  --spacing-05: 1rem;      /* 16px */
+  --spacing-06: 1.5rem;    /* 24px */
+  --spacing-07: 2rem;      /* 32px */
+  --spacing-08: 2.5rem;    /* 40px */
+  --spacing-09: 3rem;      /* 48px */
+  --spacing-10: 4rem;      /* 64px */
+}
+
+/* Layout Grid Values */
+:root {
+  --container-padding-sm: var(--spacing-05);
+  --container-padding-md: var(--spacing-05);
+  --container-padding-lg: var(--spacing-07);
+  --grid-columns: 16;
+  --grid-gutter-sm: var(--spacing-05);
+  --grid-gutter-md: var(--spacing-05);
+  --grid-gutter-lg: var(--spacing-07);
+  --sidebar-width-md: 240px;
+  --sidebar-width-lg: 256px;
+  --copilot-width-md: 320px;
+  --copilot-width-lg: 384px;
+}
+
+/* Breakpoints */
+@media (min-width: 320px) {
+  /* Small (sm) - Mobile */
+  :root {
+    --current-breakpoint: 'sm';
+  }
+}
+
+@media (min-width: 672px) {
+  /* Medium (md) - Tablet */
+  :root {
+    --current-breakpoint: 'md';
+  }
+}
+
+@media (min-width: 1056px) {
+  /* Large (lg) - Desktop */
+  :root {
+    --current-breakpoint: 'lg';
+  }
+}
+
+@media (min-width: 1312px) {
+  /* X-Large (xlg) - Large Desktop */
+  :root {
+    --current-breakpoint: 'xlg';
+  }
+}
+
+@media (min-width: 1584px) {
+  /* Max - Extra Large Desktop */
+  :root {
+    --current-breakpoint: 'max';
+  }
+}
+
+/* Container Classes */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding-sm);
+  padding-right: var(--container-padding-sm);
+}
+
+@media (min-width: 672px) {
+  .container {
+    padding-left: var(--container-padding-md);
+    padding-right: var(--container-padding-md);
+  }
+}
+
+@media (min-width: 1056px) {
+  .container {
+    max-width: 1584px;
+    padding-left: var(--container-padding-lg);
+    padding-right: var(--container-padding-lg);
+  }
+}
+
+/* Typography Scaling */
+h1, .h1 {
+  font-size: 2rem;    /* 32px on mobile */
+  line-height: 1.25;
+}
+
+h2, .h2 {
+  font-size: 1.75rem; /* 28px on mobile */
+  line-height: 1.3;
+}
+
+h3, .h3 {
+  font-size: 1.5rem;  /* 24px on mobile */
+  line-height: 1.4;
+}
+
+h4, .h4 {
+  font-size: 1.25rem; /* 20px on mobile */
+  line-height: 1.4;
+}
+
+@media (min-width: 672px) {
+  h1, .h1 { font-size: 2.25rem; }  /* 36px on tablet */
+  h2, .h2 { font-size: 2rem; }     /* 32px on tablet */
+  h3, .h3 { font-size: 1.75rem; }  /* 28px on tablet */
+  h4, .h4 { font-size: 1.5rem; }   /* 24px on tablet */
+}
+
+@media (min-width: 1056px) {
+  h1, .h1 { font-size: 2.625rem; } /* 42px on desktop */
+  h2, .h2 { font-size: 2.25rem; }  /* 36px on desktop */
+  h3, .h3 { font-size: 2rem; }     /* 32px on desktop */
+  h4, .h4 { font-size: 1.75rem; }  /* 28px on desktop */
+}
+
+/* Body text optimal line length */
+.content {
+  max-width: 960px; /* 60-80 characters */
+}
+
+/* Card Grid */
+.card-grid {
+  display: grid;
+  gap: var(--spacing-05);
+  grid-template-columns: 1fr; /* Mobile: 1 column */
+}
+
+@media (min-width: 672px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr); /* Tablet: 2 columns */
+  }
+}
+
+@media (min-width: 1056px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columns */
+    gap: var(--spacing-07);
+  }
+}
+
+/* Touch Targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (min-width: 1056px) {
+  .touch-target {
+    min-height: 32px;
+    min-width: 32px;
+  }
+}
+
+/* Spacing between interactive elements */
+.interactive-elements > * + * {
+  margin-left: var(--spacing-03);
+} 
