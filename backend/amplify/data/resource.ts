@@ -40,6 +40,9 @@ const schema = a.schema({
   .authorization(allow => [
     allow.owner().to(['create', 'read', 'update', 'delete']), // Only owner can CRUD their documents
     allow.groups(['admin']).to(['read', 'update', 'delete']),
+  ])
+  .secondaryIndexes(index => [
+    index('parentDocumentId')
   ]),
 
   // V1: Collections will be simple. Definition and entries.

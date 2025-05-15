@@ -200,6 +200,16 @@
               "properties": {}
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "documentsByParentDocumentId",
+                "queryField": "listDocumentByParentDocumentId",
+                "fields": [
+                  "parentDocumentId"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [

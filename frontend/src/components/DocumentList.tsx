@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Text, Button, Flex, Spinner } from '@chakra-ui/react';
-import { Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Box,
+  Text,
+  Button,
+  Flex,
+  Spinner,
+  Input,
+  IconButton,
+} from '@chakra-ui/react';
+import { Plus, ChevronRight, ChevronDown, MoreVertical } from 'lucide-react';
 import { generateClient } from 'aws-amplify/api';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { uploadData } from 'aws-amplify/storage';
@@ -17,44 +25,156 @@ interface DocumentType {
   owner?: string;
 }
 
-// Document list item component
-interface DocumentItemProps {
-  id: string;
-  title: string;
-  lastEdited?: string;
-  isActive: boolean;
-  onClick: (id: string, s3Key?: string | null, title?: string) => void;
-  s3ContentKey?: string | null;
+// Document tree item component
+interface TreeItemProps {
+  document: DocumentType;
+  documents: DocumentType[];
+  level: number;
+  selectedDocId: string | null;
+  onSelectDocument: (docId: string, s3Key?: string | null, title?: string) => void;
+  onCreateSubpage: (parentId: string) => void;
 }
 
-const DocumentItem: React.FC<DocumentItemProps> = ({ 
-  id, 
-  title, 
-  lastEdited, 
-  isActive, 
-  onClick,
-  s3ContentKey
-}) => (
-  <Box
-    p={3}
-    borderRadius="md"
-    bg={isActive ? 'gray.100' : 'transparent'}
-    cursor="pointer"
-    _hover={{ bg: 'gray.50' }}
-    onClick={() => onClick(id, s3ContentKey, title)}
-    borderLeft={isActive ? '3px solid' : '3px solid transparent'}
-    borderLeftColor={isActive ? 'brand.500' : 'transparent'}
-  >
-    <Text fontWeight={isActive ? 'medium' : 'normal'} color={isActive ? 'brand.500' : 'gray.700'}>
-      {title}
-    </Text>
-    {lastEdited && (
-      <Text fontSize="xs" color="gray.500">
-        Last edited: {new Date(lastEdited).toLocaleDateString()}
-      </Text>
-    )}
-  </Box>
-);
+const TreeItem: React.FC<TreeItemProps> = ({
+  document,
+  documents,
+  level,
+  selectedDocId,
+  onSelectDocument,
+  onCreateSubpage,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const childDocuments = documents.filter(doc => doc.parentDocumentId === document.id);
+  const hasChildren = childDocuments.length > 0;
+
+  // Handle clicks outside the menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      window.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  return (
+    <Box>
+      <Flex alignItems="center">
+        {hasChildren ? (
+          <Box 
+            as="button"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            width="24px"
+            height="24px"
+            onClick={() => setIsExpanded(!isExpanded)}
+            mr={1}
+          >
+            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </Box>
+        ) : (
+          <Box width="24px" /> // Spacer for alignment
+        )}
+        <Box
+          flex="1"
+          p={2}
+          pl={level === 0 ? 2 : 2 + level * 4}
+          borderRadius="md"
+          bg={selectedDocId === document.id ? 'gray.100' : 'transparent'}
+          cursor="pointer"
+          _hover={{ bg: 'gray.50' }}
+          onClick={() => onSelectDocument(document.id, document.s3ContentKey, document.title)}
+          borderLeft={selectedDocId === document.id ? '3px solid' : '3px solid transparent'}
+          borderLeftColor={selectedDocId === document.id ? 'brand.500' : 'transparent'}
+          mr={2}
+        >
+          <Text fontWeight={selectedDocId === document.id ? 'medium' : 'normal'} color={selectedDocId === document.id ? 'brand.500' : 'gray.700'}>
+            {document.title}
+          </Text>
+          {document.updatedAt && (
+            <Text fontSize="xs" color="gray.500">
+              Last edited: {new Date(document.updatedAt).toLocaleDateString()}
+            </Text>
+          )}
+        </Box>
+        
+        {/* Custom Menu */}
+        <Box position="relative" ref={menuRef}>
+          <Box 
+            as="button"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            w="24px" 
+            h="24px"
+            borderRadius="sm"
+            _hover={{ bg: 'gray.100' }}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <MoreVertical size={14} />
+          </Box>
+          
+          {isMenuOpen && (
+            <Box
+              position="absolute"
+              right="0"
+              top="100%"
+              mt="1"
+              zIndex={10}
+              bg="white"
+              boxShadow="md"
+              borderRadius="md"
+              border="1px"
+              borderColor="gray.200"
+              width="150px"
+            >
+              <Box
+                as="button"
+                w="full"
+                textAlign="left"
+                px={3}
+                py={2}
+                _hover={{ bg: 'gray.50' }}
+                onClick={() => {
+                  onCreateSubpage(document.id);
+                  setIsMenuOpen(false);
+                }}
+              >
+                Create Subpage
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Flex>
+      
+      {isExpanded && hasChildren && (
+        <Box ml={4}>
+          {childDocuments.map(childDoc => (
+            <TreeItem
+              key={childDoc.id}
+              document={childDoc}
+              documents={documents}
+              level={level + 1}
+              selectedDocId={selectedDocId}
+              onSelectDocument={onSelectDocument}
+              onCreateSubpage={onCreateSubpage}
+            />
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 interface DocumentListProps {
   selectedDocId?: string | null;
@@ -83,6 +203,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [newSubpageTitle, setNewSubpageTitle] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Fetch documents owned by the current user
   const fetchDocuments = useCallback(async () => {
@@ -124,7 +247,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   }, []);
 
   // Create a new document
-  const handleCreateNewDocument = async () => {
+  const handleCreateNewDocument = async (parentDocumentId: string | null = null) => {
     setIsCreating(true);
     setError(null);
     
@@ -138,10 +261,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
       }
       
       // Create document metadata in DynamoDB
-      const newDocTitle = `Untitled Document ${new Date().toLocaleString()}`;
+      const newDocTitle = parentDocumentId 
+        ? newSubpageTitle || `Untitled Subpage ${new Date().toLocaleString()}`
+        : `Untitled Document ${new Date().toLocaleString()}`;
+      
       const createResponse = await client.models.Document.create({
         title: newDocTitle,
         isPinned: false,
+        parentDocumentId: parentDocumentId || undefined,
         // owner is auto-set by backend @auth rule
       });
       
@@ -181,12 +308,30 @@ const DocumentList: React.FC<DocumentListProps> = ({
       onSelectDocument(updatedDocument.id, s3Key, updatedDocument.title);
       
       console.log(`Document created: "${newDocTitle}"`);
+      
+      // Reset the subpage modal state
+      setNewSubpageTitle('');
+      setIsCreateModalOpen(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create document';
       console.error('Error creating document:', err);
       setError(errorMessage);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Handle creating a subpage
+  const handleCreateSubpage = (parentId: string) => {
+    setSelectedParentId(parentId);
+    setNewSubpageTitle('');
+    setIsCreateModalOpen(true);
+  };
+
+  // Submit handler for the subpage creation modal
+  const handleSubmitSubpage = () => {
+    if (selectedParentId) {
+      handleCreateNewDocument(selectedParentId);
     }
   };
 
@@ -214,6 +359,9 @@ const DocumentList: React.FC<DocumentListProps> = ({
       )
     : documents;
 
+  // Get top-level documents
+  const topLevelDocuments = filteredDocuments.filter(doc => !doc.parentDocumentId);
+
   return (
     <>
       <Box p={4} borderBottom="1px" borderColor="gray.200">
@@ -221,7 +369,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
           colorScheme="brand"
           variant="solid"
           width="full"
-          onClick={handleCreateNewDocument}
+          onClick={() => handleCreateNewDocument()}
           size="md"
           bg="#07422B"
           color="white"
@@ -267,21 +415,70 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 {searchTerm ? 'No documents found matching your search' : 'No documents yet. Create your first document!'}
               </Text>
             ) : (
-              filteredDocuments.map(doc => (
-                <DocumentItem
+              topLevelDocuments.map(doc => (
+                <TreeItem
                   key={doc.id}
-                  id={doc.id}
-                  title={doc.title}
-                  lastEdited={doc.updatedAt}
-                  isActive={selectedDocId === doc.id}
-                  onClick={onSelectDocument}
-                  s3ContentKey={doc.s3ContentKey}
+                  document={doc}
+                  documents={filteredDocuments}
+                  level={0}
+                  selectedDocId={selectedDocId}
+                  onSelectDocument={onSelectDocument}
+                  onCreateSubpage={handleCreateSubpage}
                 />
               ))
             )}
           </Box>
         )}
       </Box>
+
+      {/* Simple Subpage Creation Modal */}
+      {isCreateModalOpen && (
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          right="0"
+          bottom="0"
+          bg="rgba(0,0,0,0.5)"
+          zIndex={1000}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          onClick={() => setIsCreateModalOpen(false)}
+        >
+          <Box 
+            bg="white" 
+            p={4} 
+            borderRadius="md" 
+            width="400px"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Text fontWeight="bold" mb={3}>Create Subpage</Text>
+            <Input
+              placeholder="Enter subpage title"
+              value={newSubpageTitle}
+              onChange={(e) => setNewSubpageTitle(e.target.value)}
+              mb={4}
+            />
+            <Flex justifyContent="flex-end">
+              <Button 
+                variant="ghost" 
+                mr={2}
+                onClick={() => setIsCreateModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                colorScheme="brand"
+                onClick={handleSubmitSubpage}
+                disabled={isCreating}
+              >
+                {isCreating ? "Creating..." : "Create"}
+              </Button>
+            </Flex>
+          </Box>
+        </Box>
+      )}
     </>
   );
 };

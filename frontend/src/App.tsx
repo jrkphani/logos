@@ -5,6 +5,11 @@ import '@aws-amplify/ui-react/styles.css'; // Default Amplify UI styles
 import { getCurrentUser } from 'aws-amplify/auth';
 import { generateClient } from 'aws-amplify/api';
 import type { Schema } from '../../backend/amplify/data/resource';
+import type {
+  UserProfile,
+  CreateUserProfileInput,
+  UpdateUserProfileInput
+} from '../../backend/src/API';
 
 // Direct imports for layouts
 import AuthenticatedLayout from './layouts/AuthenticatedLayout';
@@ -21,7 +26,6 @@ import SettingsPage from './pages/app/SettingsPage';
 import NewUserOnboarding from './components/NewUserOnboarding';
 
 // Generate the API client for backend operations
-// @ts-ignore - This might cause TypeScript errors if the Schema is not correctly imported
 const client = generateClient<Schema>();
 
 // This component will render the UI for authenticated users inside AuthenticatedLayout
@@ -61,26 +65,24 @@ function AppContent() {
     try {
       // Get current authenticated user
       const cognitoUser = await getCurrentUser();
-      const userId = cognitoUser.userId; // This is the user's unique Cognito ID
+      const userId = cognitoUser.userId; // This is the user's unique Cognito sub ID
 
       if (!userId) {
-        throw new Error("User ID not found. Cannot save profile.");
+        throw new Error("User ID (sub) not found. Cannot save profile.");
       }
 
       // Prepare the data for saving
-      const userProfileData = {
+      const userProfileData: Omit<CreateUserProfileInput, 'userId'> = {
         userRole: profile.userRole,
         preferredDocumentTypes: profile.preferredDocumentTypes,
       };
 
       // Try to get existing profile to decide between create or update
-      let existingProfile = null;
+      let existingProfile: UserProfile | null = null;
       try {
-        // @ts-ignore - Using any to bypass TypeScript errors with client.models
+        // @ts-ignore - Type mismatch between Schema and client models
         const { data, errors } = await client.models.UserProfile.get({ userId });
         if (errors) {
-          // If error is specifically "not found", that's okay, we'll create.
-          // Otherwise, it's a genuine fetch error.
           const notFoundError = errors.find((e: any) => 
             e.message.toLowerCase().includes('not found') || 
             e.message.toLowerCase().includes('conditionalcheckfailedexception')
@@ -90,56 +92,59 @@ function AppContent() {
             throw new Error(errors.map((e: any) => e.message).join('\n'));
           }
         }
-        existingProfile = data;
+        existingProfile = data || null;
       } catch (fetchError: any) {
-        // Handle cases where `get` might throw directly for not found
         if (!fetchError.message?.toLowerCase().includes('not found') && 
             !fetchError.message?.toLowerCase().includes('conditionalcheckfailedexception')) {
           console.error('Exception fetching user profile:', fetchError);
-          // Continue with create flow
+        } else {
+          console.log("No existing profile found for user, will create.");
         }
-        console.log("No existing profile found for user, will create.");
       }
 
       if (existingProfile) {
         // Update existing profile
-        const updateInput = {
-          userId: userId, // Must match identifier
+        const updateInput: UpdateUserProfileInput = {
+          userId,
           ...userProfileData,
         };
-        // @ts-ignore - Using any to bypass TypeScript errors with client.models
+        // @ts-ignore - Type mismatch between Schema and client models
         const { data: updatedProfile, errors: updateErrors } = await client.models.UserProfile.update(updateInput);
         if (updateErrors || !updatedProfile) {
           throw new Error(updateErrors?.map((e: any) => e.message).join('\n') || "Failed to update user profile.");
         }
         console.log('User profile updated:', updatedProfile);
-        // Success notification through console (removed toast dependency)
-        console.log("Preferences Updated");
+        console.log("Preferences Updated: Your preferences have been successfully updated.");
       } else {
         // Create new profile
-        const createInput = {
-          userId: userId, // Set the PK
+        const createInput: CreateUserProfileInput = {
+          userId,
           ...userProfileData,
         };
-        // @ts-ignore - Using any to bypass TypeScript errors with client.models
+        // @ts-ignore - Type mismatch between Schema and client models
         const { data: newProfile, errors: createErrors } = await client.models.UserProfile.create(createInput);
         if (createErrors || !newProfile) {
           throw new Error(createErrors?.map((e: any) => e.message).join('\n') || "Failed to create user profile.");
         }
         console.log('User profile created:', newProfile);
-        // Success notification through console (removed toast dependency)
-        console.log("Preferences Saved");
+        console.log("Preferences Saved: Your preferences have been successfully saved.");
       }
-    } catch (err: any) {
-      console.error('Error saving user profile to backend:', err);
-      // Error notification through console (removed toast dependency)
-      console.error("Error Saving Preferences:", err.message || "Could not save your preferences to the cloud. They are saved locally for now.");
-    } finally {
-      // Always store in localStorage for immediate UI use, even if backend save fails
+
+      // Always store in localStorage for immediate UI use
       localStorage.setItem('logos-onboarding-complete', 'true');
       localStorage.setItem('logos-user-role', profile.userRole);
       localStorage.setItem('logos-document-types', JSON.stringify(profile.preferredDocumentTypes));
       setShowOnboarding(false);
+      
+      return true; // Indicate success
+      
+    } catch (err: any) {
+      console.error('Error saving user profile to backend:', err);
+      console.error("Error Saving Preferences:", err.message || "Could not save your preferences to the cloud.");
+      // Still mark as complete locally to avoid re-prompt loop
+      localStorage.setItem('logos-onboarding-complete', 'true');
+      setShowOnboarding(false);
+      return false; // Indicate failure
     }
   };
 
@@ -147,6 +152,8 @@ function AppContent() {
     // Mark onboarding as complete but don't save preferences
     localStorage.setItem('logos-onboarding-complete', 'true');
     setShowOnboarding(false);
+    
+    console.log("Onboarding Skipped: You can update your preferences later in Settings.");
   };
 
   return (
